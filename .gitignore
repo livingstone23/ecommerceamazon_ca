@@ -396,3 +396,8 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+
+# LCANO ignoramos los archivos del json
+appsettings.json
+appsettings.Development.json

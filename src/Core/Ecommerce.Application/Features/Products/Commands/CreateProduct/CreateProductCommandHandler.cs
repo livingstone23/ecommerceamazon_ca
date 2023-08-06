@@ -1,0 +1,48 @@
+using AutoMapper;
+using Ecommerce.Application.Features.Products.Queries.Vms;
+using Ecommerce.Application.Persistence;
+using Ecommerce.Domain;
+using MediatR;
+
+namespace Ecommerce.Application.Features.Products.Commands.CreateProduct;
+
+
+public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand, ProductVm>
+{
+
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMapper _mapper;
+    
+    public CreateProductCommandHandler(IUnitOfWork unitOfWork, IMapper mapper)
+    {
+        _unitOfWork = unitOfWork;
+        _mapper = mapper;
+    }
+
+    public async Task<ProductVm> Handle(CreateProductCommand request, CancellationToken cancellationToken)
+    {
+        //Transformamos el producto para poderlo insertar en la base de datos.
+       var productEntity =  _mapper.Map<Product>(request);    
+       
+       //Insertamos el producto en la base de datos.
+       await _unitOfWork.Repository<Product>().AddAsync(productEntity);
+
+       //Agregamos las url de las imagenes, por ello debemos confirmarlas para proceder
+       if((request.ImageUrls is not null) && (request.ImageUrls.Count > 0))
+       {
+            //A esa lista le agregamos el id del producto
+            request.ImageUrls.Select(c => { c.ProductId = productEntity.Id; return c; }).ToList();
+
+            var images =  _mapper.Map<List<Image>>(request.ImageUrls);
+            _unitOfWork.Repository<Image>().AddRange(images);
+            await _unitOfWork.Complete();
+            
+       }
+
+       //retonrmos el objeto insertado en la base de datos.
+       return _mapper.Map<ProductVm>(productEntity);
+
+    }
+}
+
+
